@@ -862,20 +862,16 @@
             box-shadow: 0 25px 70px var(--shadow-medium);
         }
         
-        /* START: MODIFIED SECTION FOR RTL ALIGNMENT */
         .info-row {
             display: flex;
-            /* justify-content: space-between; -- This was causing the wide spacing */
-            justify-content: flex-start; /* This aligns items to the right in RTL */
+            justify-content: flex-start; 
             align-items: center;
-            gap: 1rem; /* Added a small gap for readability */
+            gap: 1rem; 
             padding: 0.8rem;
             border-bottom: 1px solid var(--info-border-color);
             transition: all 0.3s ease;
             border-radius: 0.4rem;
         }
-        /* END: MODIFIED SECTION FOR RTL ALIGNMENT */
-
 
         @media (max-width: 768px) {
             .info-row {
@@ -911,6 +907,7 @@
             color: var(--info-label-color);
             font-weight: 700;
             font-size: 0.9rem;
+            flex-shrink: 0; /* Prevents the label from shrinking */
         }
 
         @media (max-width: 768px) {
@@ -945,24 +942,22 @@
             }
         }
         
-        /* START: MODIFIED SECTION FOR RTL ALIGNMENT */
         .info-value {
             font-weight: 800;
-            text-align: right; /* Changed from 'left' to 'right' */
-            max-width: 70%; /* Adjusted width for better layout */
+            text-align: right;
             overflow: hidden;
             text-overflow: ellipsis;
+            white-space: nowrap; /* Prevents long text from wrapping */
             position: relative;
             font-size: 0.9rem;
         }
-        /* END: MODIFIED SECTION FOR RTL ALIGNMENT */
-
 
         @media (max-width: 768px) {
             .info-value {
-                max-width: 100%;
+                white-space: normal; /* Allow wrapping on small screens */
                 text-align: right;
                 font-size: 0.85rem;
+                width: 100%;
             }
         }
 
@@ -1006,7 +1001,7 @@
             }
         }
         
-        .info-value.school {
+        .info-value.school, .info-value.admin {
             color: var(--text-color);
         }
         
@@ -1538,7 +1533,7 @@
                                         type="number" 
                                         class="form-control form-control-lg" 
                                         id="seatNumber" 
-                                        placeholder="ادخل هنا رقم الجلوس "
+                                        placeholder="مثال: 123456"
                                         required
                                         autocomplete="off"
                                         min="1"
@@ -1587,7 +1582,7 @@
         // Wait for the DOM to be fully loaded before running the script
         document.addEventListener('DOMContentLoaded', () => {
             // --- Constants and Global Variables ---
-            const googleSheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ0EVnAu7frYxwwtw8MT9ZowKMDUOZBGoe4HlIYo5grZ68HPwJRUOK7EaskBbXl0I21-6l4Jy5TkCt5/pub?output=csv';
+            const googleSheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTgC-crAdGe0MIVrjF4-cAHSNWEiRQ9Vhotn3PdGEGWAnEgweR6hgbCTk_4Zgp9UA/pub?output=csv';
             
             // --- UI Element Selection ---
             const resultForm = document.getElementById('resultForm');
@@ -1642,8 +1637,6 @@
                     seatNumberInput.focus();
                     return;
                 }
-
-
                 
                 toggleLoading(true);
 
@@ -1675,16 +1668,12 @@
 
             // Add input validation and formatting
             seatNumberInput.addEventListener('input', function(e) {
-                // Remove any non-numeric characters
                 this.value = this.value.replace(/[^0-9]/g, '');
-                
-                // Clear any previous error messages when user starts typing
                 if (this.value.length > 0) {
                     alertMessage.innerHTML = '';
                 }
             });
 
-            // Add Enter key support for better UX
             seatNumberInput.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
                     resultForm.dispatchEvent(new Event('submit'));
@@ -1693,25 +1682,26 @@
 
             // --- Core Functions ---
             /**
-             * Enhanced function to find student data by seat number from CSV text.
-             * Includes better error handling and data validation.
+             * Finds student data by seat number from CSV text based on the new column order.
              */
             function findStudentBySeatNumber(csvText, seatNumber) {
                 try {
                     const rows = csvText.split(/\r?\n/).map(row => row.split(','));
                     
+                    // Search for seat number in the 3rd column (index 2)
                     for (let i = 1; i < rows.length; i++) {
                         const row = rows[i];
-                        if (row && row.length > 0 && row[0] && row[0].trim() === seatNumber) {
+                        if (row && row.length > 2 && row[2] && row[2].trim() === seatNumber) {
+                            // Map columns based on the new order
                             return {
-                                seat: row[0]?.trim() || '',
-                                name: row[1]?.trim() || 'لا يوجد اسم',
-                                school: row[2]?.trim() || 'لا توجد مدرسة',
-                                arabic: row[3]?.trim() || '0',
-                                english: row[4]?.trim() || '0',
-                                social: row[5]?.trim() || '0',
-                                algebra: row[6]?.trim() || '0',
-                                geometry: row[7]?.trim() || '0',
+                                admin: row[0]?.trim() || 'لا توجد إدارة',
+                                school: row[1]?.trim() || 'لا توجد مدرسة',
+                                seat: row[2]?.trim() || '',
+                                name: row[3]?.trim() || 'لا يوجد اسم',
+                                arabic: row[4]?.trim() || '0',
+                                english: row[5]?.trim() || '0',
+                                social: row[6]?.trim() || '0',
+                                math: row[7]?.trim() || '0',
                                 science: row[8]?.trim() || '0',
                                 subTotal: row[9]?.trim() || '0', 
                                 computer: row[10]?.trim() || '0',
@@ -1728,8 +1718,7 @@
             }
 
             /**
-             * Enhanced helper function to create a single row for the grades table.
-             * Includes better styling and accessibility features.
+             * Creates a single row for the grades table.
              */
             function createGradeRow(subjectName, grade, isNonAdditive = false) {
                 const gradeStr = grade.toString();
@@ -1748,7 +1737,7 @@
             }
 
             /**
-             * Enhanced function to display student results with better animations and styling.
+             * Displays student results with the new data order.
              */
             function displayResult(data) {
                 searchContainer.style.display = 'none';
@@ -1757,6 +1746,20 @@
                 const resultHTML = `
                     <div class="student-data-section">
                         <div class="info-row">
+                            <div class="info-label">
+                                <i class="bi bi-geo-alt-fill"></i>
+                                <span>الإدارة التعليمية:</span>
+                            </div>
+                            <div class="info-value admin">${data.admin}</div>
+                        </div>
+                        <div class="info-row">
+                            <div class="info-label">
+                                <i class="bi bi-building"></i>
+                                <span>المدرسة:</span>
+                            </div>
+                            <div class="info-value school">${data.school}</div>
+                        </div>
+                         <div class="info-row">
                             <div class="info-label">
                                 <i class="bi bi-person-badge"></i>
                                 <span>رقم الجلوس:</span>
@@ -1769,13 +1772,6 @@
                                 <span>اسم الطالب:</span>
                             </div>
                             <div class="info-value name">${data.name}</div>
-                        </div>
-                        <div class="info-row">
-                            <div class="info-label">
-                                <i class="bi bi-building"></i>
-                                <span>المدرسة:</span>
-                            </div>
-                            <div class="info-value school">${data.school}</div>
                         </div>
 
                         <div class="table-responsive">
@@ -1790,8 +1786,7 @@
                                     ${createGradeRow('اللغة العربية', data.arabic)}
                                     ${createGradeRow('اللغة الإنجليزية', data.english)}
                                     ${createGradeRow('الدراسات الاجتماعية', data.social)}
-                                    ${createGradeRow('الجبر', data.algebra)}
-                                    ${createGradeRow('الهندسة', data.geometry)}
+                                    ${createGradeRow('الرياضيات', data.math)}
                                     ${createGradeRow('العلوم', data.science)}
                                     ${createGradeRow('الحاسب الآلي', data.computer, true)}
                                     ${createGradeRow('التربية الدينية', data.religion, true)}
@@ -1833,7 +1828,7 @@
             }
 
             /**
-             * Enhanced function to display alert messages with better styling and animations.
+             * Displays alert messages.
              */
             function displayAlert(message, type = 'info') {
                 const alertClass = type === 'warning' ? 'alert-warning' : 
@@ -1849,7 +1844,6 @@
                     </div>
                 `;
 
-                // Auto-hide success messages after 5 seconds
                 if (type === 'success') {
                     setTimeout(() => {
                         const alertElement = alertMessage.querySelector('.alert');
@@ -1865,7 +1859,7 @@
             }
 
             /**
-             * Enhanced function to toggle loading state with better visual feedback.
+             * Toggles loading state.
              */
             function toggleLoading(isLoading) {
                 if (isLoading) {
@@ -1886,7 +1880,7 @@
             }
 
             /**
-             * Function to reset search and return to initial state.
+             * Resets search and returns to initial state.
              */
             window.resetSearch = function() {
                 searchContainer.style.display = 'block';
@@ -1895,7 +1889,6 @@
                 seatNumberInput.value = '';
                 seatNumberInput.focus();
                 
-                // Smooth scroll to top
                 window.scrollTo({ 
                     top: 0, 
                     behavior: 'smooth' 
@@ -1903,33 +1896,24 @@
             };
 
             // --- Additional Enhancements ---
-            
-            // Add keyboard shortcuts
             document.addEventListener('keydown', function(e) {
-                // Escape key to reset search
                 if (e.key === 'Escape' && resultDisplay.style.display === 'block') {
                     resetSearch();
                 }
-                
-                // Ctrl/Cmd + K to focus search input
                 if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
                     e.preventDefault();
                     seatNumberInput.focus();
                 }
             });
 
-            // Add focus management for better accessibility
             seatNumberInput.addEventListener('focus', function() {
-                this.select(); // Select all text when focused
+                this.select();
             });
 
-            // Add visual feedback for form validation
             seatNumberInput.addEventListener("blur", function() {
-                // Removed length validation for blur event as per user request
                 this.style.borderColor = "var(--input-border)";
             });
 
-            // Initialize focus on page load
             setTimeout(() => {
                 seatNumberInput.focus();
             }, 500);
